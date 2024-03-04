@@ -1,29 +1,49 @@
-# workflow 의 이름
-name: Run Test
+# This workflow will build a Java project with Gradle
+# For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-gradle
 
 
+# Repo Action 페이지에 나타날 이름
+name: Spring Boot & Gradle CI/CD
+
+
+# Event Trigger
+# master branch에 push 또는 pull request가 발생할 경우 동작
+# branch 단위 외에도, tag나 cron 식 등을 사용할 수 있음
 on:
- # develop 브랜치에 push 나 pull request 이벤트가 일어났을때 해당 workflow 를 trigger
  push:
    branches: [ master ]
  pull_request:
    branches: [ master ]
 
 
-# workflow의 실행은 하나 이상의 job으로 구성 됨
 jobs:
- # 이 workflow 는 "build" 라는 single job 으로 구성
  build:
-   # job이 실행될 환경 - 최신 mac os
-   runs-on: macos-latest
+   # 실행 환경 지정
+   runs-on: ubuntu-latest
 
 
-   # Step은 job의 일부로 실행될 일련의 task들을 나타냄
+   # Task의 sequence를 명시한다.
    steps:
-   # uses 키워드를 통해 Github Actions에서 기본으로 제공하는 액션을 사용 가능. 아래 액션은 repository 에 체크아웃하는 것
    - uses: actions/checkout@v2
-   # shell 이용해서 하나의 command 수행
-   - name: Start xcode build 🛠
-     run: |
-       ./gradlew build
+  
+   - name: Set up JDK 17
+     uses: actions/setup-java@v1
+     with:
+       java-version: 17
+  
+   - name: Grant execute permission for gradlew
+     run: chmod +x gradlew
+  
+   - name: Build with Gradle
+     run: ./gradlew clean build
 
+
+   - name: action-slack
+     uses: 8398a7/action-slack@v3
+     with:
+       status: ${{ job.status }}
+       author_name: Github Action Test # default: 8398a7@action-slack
+       fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+     env:
+       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }} # required
+     if: always() # Pick up events even if the job fails or is canceled.
